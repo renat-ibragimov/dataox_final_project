@@ -1,8 +1,10 @@
+from datetime import datetime
+import json
 import logging
 
 from lxml import etree
-import json
-from datetime import datetime
+
+from database.db_saver import DBSaver
 
 
 class DataParser:
@@ -14,13 +16,15 @@ class DataParser:
         self.owner_details = {}
 
         self.parsing()
-        self.save_to()
 
     def id(self):
-        return self.source.xpath('//a[@aria-current="page"]/text()')[0]
+        return int(self.source.xpath('//a[@aria-current="page"]/text()')[0])
 
     def title(self):
         return self.source.xpath('(//h1/text())')[0]
+
+    def city(self):
+        return self.source.xpath('//span[@class="text-3814801860"]/text()')[0]
 
     def location(self):
         return self.source.xpath('//span[@class="address-'
@@ -92,7 +96,11 @@ class DataParser:
             return str(datetime.strptime(date[0],
                                          "%B %d, %Y"))  #  TODO change to datetime
 
-    def owner_title(self):
+    def owner_id(self):
+        id = self.source.xpath('//a[@class="link-2686609741"]/@href')[0]
+        return int(id.split('/')[2])
+
+    def owner_name(self):
         return self.source.xpath('//a[@class="link-2686609741"]/text()')[0]
 
     def rank(self):
@@ -124,33 +132,38 @@ class DataParser:
         self.apart_info = {
             "id": self.id(),
             "title": self.title(),
+            "city": self.city(),
             "location": self.location(),
             "price": self.price_currency()[0],
             "currency": self.price_currency()[1],
             "price_description": self.price_description(),
             "date_posted": self.date_posted(),
-            "description": self.description()
+            "description": self.description(),
+            "owner_id": self.owner_id()
         }
 
         self.apart_details = {
-            "overview_ut_incl_hydro": self.utilities("hydro"),
-            "overview_ut_incl_heat": self.utilities("heat"),
-            "overview_ut_incl_water": self.utilities("water"),
-            "overview_wi_fi": self.utilities("wi-fi"),
-            "overview_parking": int(self.terms("parking")[0]),
-            "overview_agreement_type": self.terms("agreement_type"),
-            "overview_move_in_date": self.move_in_date(),
-            "overview_pet_friendly": bool(self.terms("pet_friendly")),
-            "unit_size": int(self.terms("size").replace(",", "") if self.terms(
-                "size") else False), "unit_furnished": self.terms("furnished"),
-            "unit_appliances": self.utilities("appliances"),
-            "unit_ac": bool(self.terms("ac")),
-            "unit_outdoor_space": bool(self.utilities("space")),
-            "int_smoking": bool(self.terms("int_smoking"))
+            "apartment_id": self.id(),
+            "ut_incl_hydro": self.utilities("hydro"),
+            "ut_incl_heat": self.utilities("heat"),
+            "ut_incl_water": self.utilities("water"),
+            "wi_fi": self.utilities("wi-fi"),
+            "parking": int(self.terms("parking")[0]),
+            "agreement_type": self.terms("agreement_type"),
+            "move_in_date": self.move_in_date(),
+            "pet_friendly": bool(self.terms("pet_friendly")),
+            "size": int(self.terms("size").replace(",", "") if self.terms(
+                "size") else False),
+            "unit_furnished": bool(self.terms("furnished")),
+            "appliances": self.utilities("appliances"),
+            "ac": bool(self.terms("ac")),
+            "outdoor_space": bool(self.utilities("space")),
+            "smoking": bool(self.terms("int_smoking"))
         }
 
         self.owner_details = {
-            "owner_title": self.owner_title(),
+            "id": self.owner_id(),
+            "name": self.owner_name(),
             "rank": self.rank(),
             "on_kijiji_since": self.on_kijiji_since(),
             "phone": self.phone_number()
@@ -161,11 +174,27 @@ class DataParser:
             self.source = etree.HTML(source)
             if self.source is not None:
                 self.collect_data()
+                with DBSaver() as saver:
+                    saver.save(
+                        info=self.apart_info,
+                        details=self.apart_details,
+                        owner=self.owner_details
+                    )
             else:
                 logging.warning(msg="Page is empty")
 
     def save_to(self):
-        with open("test.txt", "a") as f:
-            f.write(f'Apartment Info: {self.apart_info},'
-                    f'Apartment Details: {self.apart_details},'
-                    f'Owner Details: {self.owner_details}\n')
+        # save to txt
+        # with open("test.txt", "a") as f:
+        #     f.write(f'Apartment Info: {self.apart_info},'
+        #             f'Apartment Details: {self.apart_details},'
+        #             f'Owner Details: {self.owner_details}\n')
+        # save to json
+        with open("test.json", "w") as f:
+            f.write(json.dumps(
+                {
+                    'Apartment Info': self.apart_info,
+                    'Apartment Details': self.apart_details,
+                    'Owner Details': self.owner_details
+                }
+            ))

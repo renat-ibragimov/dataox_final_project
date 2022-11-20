@@ -1,0 +1,31 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: postgres:11
+    restart: always
+    environment:
+      POSTGRES_DB: "dataox_db"
+      POSTGRES_USER: "dataox"
+      POSTGRES_PASSWORD: "dataox"
+    ports:
+      - 5433:5432
+
+  parser:
+    build: .
+    command: python parser/start.py
+    volumes:
+      - .:/dataox_final_project/parser
+    depends_on:
+      - postgres
+
+  api:
+    build: .
+    command: uvicorn app.main:app
+    volumes:
+      - .:/dataox_final_project/api
+    ports:
+      - 8008:8000
+    depends_on:
+      - postgres
+      - parser

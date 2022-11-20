@@ -25,7 +25,7 @@ class UrlCollector:
 
     def start_collecting(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            for page in range(1, 2):
+            for page in range(5, 7):
                 url = f'https://www.kijiji.ca/b-apartments-condos/' \
                       f'city-of-toronto/page-{page}/c37l1700273'
                 executor.submit(self.get_url_from_page, page_url=url)

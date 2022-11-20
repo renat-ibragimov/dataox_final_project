@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 from data_parser import DataParser
@@ -39,47 +39,38 @@ class DataCollector:
         description_button_xpath = '//div[@class="showMoreWrapper-' \
                                    '1159407536 showMoreWrapper__newRentals-' \
                                    '1768917462"]//child::button'
-        full_descr = '//div[@class="descriptionContainer-231909819"]//div'
-
-        wait = WebDriverWait(browser, 5)
+        contact = '//button[@class="submitButton-1192440206 button-' \
+                  '1997310527 button__futurePrimary-3327793552 button__' \
+                  'medium-1066667140"]'
 
         # Opening hidden info
         try:
-            wait.until(ec.element_to_be_clickable(
-                (By.XPATH, description_button_xpath)))
-        except TimeoutException:
-            pass
-        else:
-            descr_button = browser.find_element(By.XPATH,
-                                                description_button_xpath)
-            browser.execute_script("arguments[0].click();", descr_button)
-
-        try:
-            wait.until(
-                ec.element_to_be_clickable((By.XPATH, phone_button_xpath)))
-        except TimeoutException:
-            pass
-        else:
-            ph_button = browser.find_element(By.XPATH, phone_button_xpath)
-            browser.execute_script("arguments[0].click();", ph_button)
-
-        try:
-            wait.until(
-                ec.presence_of_element_located((By.XPATH, phone_number_xpath)))
-        except TimeoutException:
-            pass
-
-        try:
-            wait.until(ec.presence_of_element_located((By.XPATH, full_descr)))
+            WebDriverWait(browser, 10).until(
+                ec.element_to_be_clickable((By.XPATH, contact)))
         except TimeoutException:
             logger.warning(msg=f"REPEATED REQUEST: {link}")
             return self.get_page_source(link)
+
+        try:
+            descr_button = browser.find_element(By.XPATH,
+                                                description_button_xpath)
+            browser.execute_script("arguments[0].click();", descr_button)
+            ph_button = browser.find_element(By.XPATH, phone_button_xpath)
+            browser.execute_script("arguments[0].click();", ph_button)
+        except NoSuchElementException:
+            pass
+
+        try:
+            WebDriverWait(browser, 2).until(
+                ec.presence_of_element_located((By.XPATH, phone_number_xpath)))
+        except TimeoutException:
+            pass
 
         self.list_of_sources.append(browser.page_source)
         logger.info(msg="Page data collected")
 
     def start_collecting(self):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             for link in self.set_of_links:
                 executor.submit(self.get_page_source, link=link)
         logger.info(msg=f'{len(self.list_of_sources)} pages '
