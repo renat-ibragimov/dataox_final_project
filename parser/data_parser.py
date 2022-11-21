@@ -11,6 +11,7 @@ class DataParser:
     def __init__(self, list_of_sources):
         self.list_of_sources = list_of_sources
         self.source = None
+        self.source_json = None
         self.apart_info = {}
         self.apart_details = {}
         self.owner_details = {}
@@ -97,38 +98,20 @@ class DataParser:
                                          "%B %d, %Y"))
 
     def owner_id(self):
-        id = self.source.xpath('//a[@class="link-2686609741"]/@href')[0]
-        return int(id.split('/')[2])
+        own_id = self.source.xpath('//a[@class="link-2686609741"]/@href')[0]
+        return int(own_id.split('/')[2])
 
     def owner_name(self):
-        owner_n = self.source.xpath('//a[@class="link-2686609741"]'
-                                    '/@href')[0].split('/')[1]
-        return ' '.join(owner_n.split('-')[1:]).title()
+        if self.phone_number:
+            return self.source_json['config']['profile']['postersCompanyName']
+        return self.source_json['viewItemPage']['viewItemData']['sellerName']
 
     def rank(self):
         return self.source.xpath('(//div[@class="line-2791721720"]'
                                  '/text())[1]')[0]
 
     def on_kijiji_since(self):
-        on_kijiji_src = self.source.xpath(
-            '//span[@class="date-862429888"]/text()')
-        try:
-            on_kijiji_src[0]
-        except IndexError:
-            return self.source.xpath(
-                '(//div[@class="text-910784403"])[3]/text()')[0]
-        else:
-            return on_kijiji_src[0]
-
-    # def phone_number(self):
-    #     ph_num = self.source.xpath(
-    #         '//a[@class="phoneNumberContainer-69344174"]/@aria-label')
-    #     try:
-    #         ph_num[0]
-    #     except IndexError:
-    #         return "N/A"
-    #     else:
-    #         return ph_num[0].split(":")[1].strip()
+        return self.source_json['config']['profile']['memberSince']
 
     def collect_data(self):
         self.apart_info = {
@@ -174,7 +157,8 @@ class DataParser:
     def parsing(self):
         for source in self.list_of_sources:
             self.source = etree.HTML(source[0])
-            self.phone_number = source[1]
+            self.source_json = source[1]
+            self.phone_number = source[2]
             if self.source is not None:
                 self.collect_data()
                 with DBSaver() as saver:
@@ -183,6 +167,7 @@ class DataParser:
                         details=self.apart_details,
                         owner=self.owner_details
                     )
+                    logging.info(msg="Row added to db")
             else:
                 logging.warning(msg="Page is empty")
 

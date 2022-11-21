@@ -130,7 +130,7 @@ dmypy.json
 .idea/
 UML Diagrams/
 draft.py
-parser/data_collector.py
+draft2.py
 test.txt
 test.json
 notes.txt

@@ -1,3 +1,4 @@
+import random
 import time
 
 import requests
@@ -31,7 +32,11 @@ cities_urls = {
 
 
 def last_page(city):
-    resp = requests.get(f'{cities_urls[city].format(1)}?siteLocale=en_CA')
+    resp = requests.get(
+        f'{cities_urls[city].format(1)}?siteLocale=en_CA',
+        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
+                               "AppleWebKit/537.36 (KHTML, like Gecko) "
+                               "Chrome/107.0.0.0 Safari/537.36"})
     source = etree.HTML(resp.text)
     total_cards = source.xpath('//span[@class="resultsShowingCount-'
                                '1707762110"]/text()')
@@ -39,7 +44,7 @@ def last_page(city):
         page = int(int(total_cards[0].split("of")[1].replace("results", "")
                        .strip()) / 40)
     except IndexError:
-        time.sleep(0.5)
+        time.sleep(random.uniform(1.0, 2.5))
         last_page(city)
         logger.info(msg=f'redirect')
     logger.info(msg=f'Last page for {city} is {page}')
