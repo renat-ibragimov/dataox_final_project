@@ -1,4 +1,4 @@
-from db_models import ApartmentInfo, ApartmentDetails, OwnerDetails
+from database.db_models import ApartmentInfo, ApartmentDetails, OwnerDetails
 from sqlalchemy.exc import IntegrityError
 import sqlalchemy.orm
 from database.db_session import engine, factory

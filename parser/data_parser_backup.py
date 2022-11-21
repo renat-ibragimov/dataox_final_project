@@ -14,7 +14,7 @@ class DataParser:
         self.apart_info = {}
         self.apart_details = {}
         self.owner_details = {}
-        self.phone_number = None
+
         self.parsing()
 
     def id(self):
@@ -44,7 +44,7 @@ class DataParser:
 
     def date_posted(self):
         return str(datetime.strptime(self.source.xpath('//time/@datetime')[1],
-                                     "%Y-%m-%dT%H:%M:%S.%fZ"))
+                                     "%Y-%m-%dT%H:%M:%S.%fZ"))  # TODO change to datetime
 
     def description(self):
         return " ".join(
@@ -94,16 +94,14 @@ class DataParser:
             return None
         else:
             return str(datetime.strptime(date[0],
-                                         "%B %d, %Y"))
+                                         "%B %d, %Y"))  #  TODO change to datetime
 
     def owner_id(self):
         id = self.source.xpath('//a[@class="link-2686609741"]/@href')[0]
         return int(id.split('/')[2])
 
     def owner_name(self):
-        owner_n = self.source.xpath('//a[@class="link-2686609741"]'
-                                    '/@href')[0].split('/')[1]
-        return ' '.join(owner_n.split('-')[1:]).title()
+        return self.source.xpath('//a[@class="link-2686609741"]/text()')[0]
 
     def rank(self):
         return self.source.xpath('(//div[@class="line-2791721720"]'
@@ -120,15 +118,15 @@ class DataParser:
         else:
             return on_kijiji_src[0]
 
-    # def phone_number(self):
-    #     ph_num = self.source.xpath(
-    #         '//a[@class="phoneNumberContainer-69344174"]/@aria-label')
-    #     try:
-    #         ph_num[0]
-    #     except IndexError:
-    #         return "N/A"
-    #     else:
-    #         return ph_num[0].split(":")[1].strip()
+    def phone_number(self):
+        ph_num = self.source.xpath(
+            '//a[@class="phoneNumberContainer-69344174"]/@aria-label')
+        try:
+            ph_num[0]
+        except IndexError:
+            return "N/A"
+        else:
+            return ph_num[0].split(":")[1].strip()
 
     def collect_data(self):
         self.apart_info = {
@@ -168,13 +166,12 @@ class DataParser:
             "name": self.owner_name(),
             "rank": self.rank(),
             "on_kijiji_since": self.on_kijiji_since(),
-            "phone": self.phone_number
+            "phone": self.phone_number()
         }
 
     def parsing(self):
         for source in self.list_of_sources:
-            self.source = etree.HTML(source[0])
-            self.phone_number = source[1]
+            self.source = etree.HTML(source)
             if self.source is not None:
                 self.collect_data()
                 with DBSaver() as saver:
@@ -186,3 +183,18 @@ class DataParser:
             else:
                 logging.warning(msg="Page is empty")
 
+    def save_to(self):
+        # save to txt
+        # with open("test.txt", "a") as f:
+        #     f.write(f'Apartment Info: {self.apart_info},'
+        #             f'Apartment Details: {self.apart_details},'
+        #             f'Owner Details: {self.owner_details}\n')
+        # save to json
+        with open("test.json", "w") as f:
+            f.write(json.dumps(
+                {
+                    'Apartment Info': self.apart_info,
+                    'Apartment Details': self.apart_details,
+                    'Owner Details': self.owner_details
+                }
+            ))

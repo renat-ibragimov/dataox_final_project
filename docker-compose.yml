@@ -13,7 +13,7 @@ services:
 
   parser:
     build: .
-    command: python parser/start.py
+    command: bash -c "python/database/db_session.py && python parser/start.py"
     volumes:
       - .:/dataox_final_project/parser
     depends_on:
