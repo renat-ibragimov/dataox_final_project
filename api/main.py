@@ -1,6 +1,8 @@
 import sys
 import os
 
+from starlette.responses import RedirectResponse
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
@@ -13,7 +15,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return RedirectResponse(url='/docs')
 
 
 @app.get('/apartments')

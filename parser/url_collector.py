@@ -29,7 +29,7 @@ class UrlCollector:
             l_page = last_page(city)
             with concurrent.futures.ThreadPoolExecutor(max_workers=25) \
                     as executor:
-                for page in range(1, 2):
+                for page in range(1, l_page + 1):
                     url = cities_urls[city].format(page)
                     executor.submit(self.get_url_from_page, page_url=url)
         logger.info(msg=f"{len(self.all_urls)} urls collected")

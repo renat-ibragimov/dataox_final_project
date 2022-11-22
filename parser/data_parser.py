@@ -1,10 +1,9 @@
 from datetime import datetime
-import json
-import logging
 
 from lxml import etree
 
 from database.db_saver import DBSaver
+from parser.logger import logger
 
 
 class DataParser:
@@ -19,33 +18,62 @@ class DataParser:
         self.parsing()
 
     def apart_id(self):
-        return int(self.source.xpath('//a[@aria-current="page"]/text()')[0])
+        try:
+            a_id = int(self.source.xpath('//a[@aria-current="page"]'
+                                         '/text()')[0])
+        except IndexError:
+            a_id = None
+        return a_id
 
     def title(self):
-        return self.source.xpath('(//h1/text())')[0]
+        try:
+            ttl = self.source.xpath('(//h1/text())')[0]
+        except IndexError:
+            ttl = None
+        return ttl
 
     def city(self):
-        return self.source.xpath('//span[@class="text-3814801860"]/text()')[0]
+        try:
+            ci = self.source.xpath('//span[@class="text-3814801860"]'
+                                   '/text()')[0]
+        except IndexError:
+            ci = None
+        return ci
 
     def location(self):
-        return self.source.xpath('//span[@class="address-'
-                                 '3617944557"]/text()')[0]
+        try:
+            loc = self.source.xpath('//span[@class="address-3617944557"]'
+                                    '/text()')[0]
+        except IndexError:
+            loc = None
+        return loc
 
     def price_currency(self):
-        pr_cur = self.source.xpath('//div[@class="priceWrapper-1165431705"]'
-                                   '//span/text()')[0]
+        try:
+            pr_cur = self.source.xpath(
+                '//div[@class="priceWrapper-1165431705"]//span/text()')[0]
+        except IndexError:
+            return None, None
         if pr_cur[-1].isdigit():
             return int(pr_cur[1:].replace(",", "")), pr_cur[0]
         else:
             return None, None
 
     def price_description(self):
-        return self.source.xpath('//span[@class="utilities-3542420827"]'
-                                 '/text()')[0]
+        try:
+            pr_descr = self.source.xpath(
+                '//span[@class="utilities-3542420827"]/text()')[0]
+        except IndexError:
+            pr_descr = None
+        return pr_descr
 
     def date_posted(self):
-        return str(datetime.strptime(self.source.xpath('//time/@datetime')[1],
-                                     "%Y-%m-%dT%H:%M:%S.%fZ"))
+        try:
+            d_p = str(datetime.strptime(self.source.xpath(
+                '//time/@datetime')[1], "%Y-%m-%dT%H:%M:%S.%fZ"))
+        except IndexError:
+            d_p = None
+        return d_p
 
     def description(self):
         return " ".join(
@@ -98,7 +126,11 @@ class DataParser:
                                          "%B %d, %Y"))
 
     def owner_id(self):
-        own_id = self.source.xpath('//a[@class="link-2686609741"]/@href')[0]
+        try:
+            own_id = self.source.xpath(
+                '//a[@class="link-2686609741"]/@href')[0]
+        except IndexError:
+            return None
         return int(own_id.split('/')[2])
 
     def owner_name(self):
@@ -110,11 +142,16 @@ class DataParser:
             .get('viewItemData', {}).get('sellerName', {})
 
     def rank(self):
-        return self.source.xpath('(//div[@class="line-2791721720"]'
-                                 '/text())[1]')[0]
+        try:
+            ran = self.source.xpath('(//div[@class="line-2791721720"]'
+                                    '/text())[1]')[0]
+        except IndexError:
+            ran = None
+        return ran
 
     def on_kijiji_since(self):
-        return self.source_json['config']['profile']['memberSince']
+        return self.source_json.get('config', {})\
+            .get('profile', {}).get('memberSince', {})
 
     def collect_data(self):
         self.apart_info = {
@@ -170,7 +207,6 @@ class DataParser:
                         details=self.apart_details,
                         owner=self.owner_details
                     )
-                    logging.info(msg="Row added to db")
+                    logger.info(msg="Row added to db")
             else:
-                logging.warning(msg="Page is empty")
-
+                logger.warning(msg="Page is empty")

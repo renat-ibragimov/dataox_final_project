@@ -135,4 +135,4 @@ test.txt
 test.json
 notes.txt
 parser/data_parser_backup.py
-parser/last_page_searcher_backup.py
+parser/last_page_searcher_async.py
