@@ -18,7 +18,7 @@ class DataParser:
         self.phone_number = None
         self.parsing()
 
-    def id(self):
+    def apart_id(self):
         return int(self.source.xpath('//a[@aria-current="page"]/text()')[0])
 
     def title(self):
@@ -102,9 +102,12 @@ class DataParser:
         return int(own_id.split('/')[2])
 
     def owner_name(self):
-        if self.phone_number:
-            return self.source_json['config']['profile']['postersCompanyName']
-        return self.source_json['viewItemPage']['viewItemData']['sellerName']
+        o_name = self.source_json.get('config', {})\
+            .get('profile', {}).get('postersCompanyName')
+        if o_name:
+            return o_name
+        return self.source_json.get('viewItemPage', {})\
+            .get('viewItemData', {}).get('sellerName', {})
 
     def rank(self):
         return self.source.xpath('(//div[@class="line-2791721720"]'
@@ -115,7 +118,7 @@ class DataParser:
 
     def collect_data(self):
         self.apart_info = {
-            "id": self.id(),
+            "id": self.apart_id(),
             "title": self.title(),
             "city": self.city(),
             "location": self.location(),
@@ -128,7 +131,7 @@ class DataParser:
         }
 
         self.apart_details = {
-            "apartment_id": self.id(),
+            "apartment_id": self.apart_id(),
             "ut_incl_hydro": self.utilities("hydro"),
             "ut_incl_heat": self.utilities("heat"),
             "ut_incl_water": self.utilities("water"),

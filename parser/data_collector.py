@@ -1,4 +1,6 @@
 import json
+import random
+import time
 
 from lxml import etree
 import requests
@@ -27,37 +29,38 @@ class DataCollector:
             res = session.get(f"https://www.kijiji.ca{link}?siteLocale=en_CA",
                               headers=self.headers)
             source = etree.HTML(res.text)
-            js_string = source.xpath(
-                '(//div[@id="FesLoader"]//script[@type="text/javascript"]'
-                '/text()')[0].replace("window.__data=", "")[:-1]
+            try:
+                js_string = source.xpath(
+                    '//div[@id="FesLoader"]//script[@type="text/javascript"]'
+                    '/text()')[0].replace("window.__data=", "")[:-1]
+            except IndexError:
+                time.sleep(random.uniform(2.0, 10.0))
+                self.get_source_html(link)
+                logger.info(msg="Redirect")
+                return
             self.source_html = res.text
             self.source_json = json.loads(js_string)
-
             logger.info(msg=f'HTML and JSON data collected')
-            logger.info(msg=f"{js_string}")
             self.get_phone_number()
 
     def get_phone_number(self):
-        try:
-            phone_token = self.source_json['config']['profile']['phoneToken']
-        except KeyError:
+        phone_token = self.source_json.get('config', {})\
+            .get('profile', {}).get('phoneToken', {})
+        if not phone_token:
             self.phone_num = ''
-            return
         else:
             with requests.Session() as session:
                 res = session.get(f"https://www.kijiji.ca"
                                   f"/j-vac-phone-get.json?token={phone_token}",
-                    headers=self.headers)
+                                  headers=self.headers)
                 self.phone_num = res.json()["phone"]
                 logger.info(msg=f'{res.json()["phone"]}')
-        finally:
-            self.source_to_parse.append(
-                (self.source_html, self.source_json, self.phone_num))
+        self.source_to_parse.append((self.source_html,
+                                     self.source_json,
+                                     self.phone_num))
 
     def start_collecting(self):
         for link in self.set_of_links:
             self.get_source_html(link)
 
-
-d = DataCollector({
-                      "/v-apartments-condos/city-of-toronto/furnished-condo-1-1-for-rent-amazing-lake-view/1640293209"})
+# DataCollector({'/v-apartments-condos/city-of-toronto/new-renovated-1-bedroom-apartment-call-today/1631151000'})
